@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <title>24 点</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --accent: #4f46e5;
+      --accent-soft: #e0e7ff;
+      --ok: #16a34a;
+      --bad: #dc2626;
+      --btn: #e8e8ed;
+      --shadow: 0 6px 18px rgba(0, 0, 0, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f0f12;
+        --card: #1c1c21;
+        --text: #f5f5f7;
+        --muted: #a1a1a6;
+        --accent: #818cf8;
+        --accent-soft: #312e81;
+        --ok: #4ade80;
+        --bad: #f87171;
+        --btn: #2a2a31;
+        --shadow: 0 6px 18px rgba(0, 0, 0, .4);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+               max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+    main {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    header { display: flex; align-items: baseline; justify-content: space-between; }
+    header a { color: var(--muted); text-decoration: none; font-size: .95rem; }
+    h1 { font-size: 1.6rem; color: var(--accent); }
+    .stats { display: flex; gap: 8px; }
+    .stat {
+      flex: 1;
+      padding: 8px;
+      background: var(--card);
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat b { display: block; font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: .8rem; color: var(--muted); }
+
+    .board { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card {
+      aspect-ratio: 5 / 4;
+      display: grid;
+      place-items: center;
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      font-size: clamp(2.6rem, 14vw, 3.6rem);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      outline: 3px solid transparent;
+      transition: transform .12s, outline-color .12s, background .12s;
+    }
+    .card.frac { font-size: clamp(1.8rem, 10vw, 2.6rem); }
+    .card:active { transform: scale(.96); }
+    .card.sel { outline-color: var(--accent); background: var(--accent-soft); }
+    .card.gone { visibility: hidden; }
+    .card.win { outline-color: var(--ok); color: var(--ok); animation: pop .5s; }
+    .card.miss { outline-color: var(--bad); color: var(--bad); }
+    .shake { animation: shake .3s; }
+    @keyframes pop { 50% { transform: scale(1.12); } }
+    @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+    .ops { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .op {
+      height: 60px;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+    .op.sel { background: var(--accent); color: #fff; }
+
+    .msg { min-height: 1.5em; text-align: center; color: var(--muted); font-size: 1rem; }
+    .msg.ok { color: var(--ok); font-weight: 600; }
+    .msg.bad { color: var(--bad); }
+
+    .tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .tool { height: 48px; background: var(--btn); border-radius: 14px; font-size: .95rem; }
+    .tool.primary { background: var(--accent); color: #fff; }
+    .tool:disabled { opacity: .4; }
+
+    details { color: var(--muted); font-size: .9rem; line-height: 1.6; }
+    summary { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>24 点</h1>
+      <a href="../">← 首页</a>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><b id="solved">0</b><span>已解</span></div>
+      <div class="stat"><b id="streak">0</b><span>连胜</span></div>
+      <div class="stat"><b id="best">0</b><span>最佳连胜</span></div>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div class="ops" id="ops">
+      <button class="op" data-op="+">+</button>
+      <button class="op" data-op="-">−</button>
+      <button class="op" data-op="*">×</button>
+      <button class="op" data-op="/">÷</button>
+    </div>
+
+    <p class="msg" id="msg">点一个数，再点运算符，再点另一个数</p>
+
+    <div class="tools">
+      <button class="tool" id="undo">撤销</button>
+      <button class="tool" id="reset">重来</button>
+      <button class="tool" id="answer">答案</button>
+      <button class="tool primary" id="next">换一题</button>
+    </div>
+
+    <details>
+      <summary>玩法</summary>
+      用这 4 个数各一次，通过加减乘除算出 24。点一个数 → 点运算符 → 点另一个数，两个数会合并成结果。
+      剩下最后一个数是 24 就赢了。每道题都保证有解。
+    </details>
+  </main>
+
+  <script>
+    // ---- exact fraction arithmetic ----
+    const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; };
+    const F = (n, d = 1) => { if (d < 0) { n = -n; d = -d; } const g = gcd(n, d); return { n: n / g, d: d / g }; };
+    const OPS = {
+      '+': (a, b) => F(a.n * b.d + b.n * a.d, a.d * b.d),
+      '-': (a, b) => F(a.n * b.d - b.n * a.d, a.d * b.d),
+      '*': (a, b) => F(a.n * b.n, a.d * b.d),
+      '/': (a, b) => b.n === 0 ? null : F(a.n * b.d, a.d * b.n),
+    };
+    const SYM = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+    const fmt = f => f.d === 1 ? String(f.n) : `${f.n}/${f.d}`;
+    const is24 = f => f.n === 24 && f.d === 1;
+
+    // Returns one solution expression, or null.
+    function solve(items) {
+      if (items.length === 1) return is24(items[0].f) ? items[0].e : null;
+      for (let i = 0; i < items.length; i++) {
+        for (let j = 0; j < items.length; j++) {
+          if (i === j) continue;
+          const rest = items.filter((_, k) => k !== i && k !== j);
+          for (const op of ['+', '-', '*', '/']) {
+            if ((op === '+' || op === '*') && j < i) continue;
+            const f = OPS[op](items[i].f, items[j].f);
+            if (!f) continue;
+            const r = solve([...rest, { f, e: `(${items[i].e} ${SYM[op]} ${items[j].e})` }]);
+            if (r) return r;
+          }
+        }
+      }
+      return null;
+    }
+    const solutionOf = nums => {
+      const s = solve(nums.map(n => ({ f: F(n), e: String(n) })));
+      return s && s.replace(/^\((.*)\)$/, '$1');
+    };
+
+    function randomPuzzle() {
+      for (;;) {
+        const nums = Array.from({ length: 4 }, () => 1 + Math.floor(Math.random() * 13));
+        if (solutionOf(nums)) return nums;
+      }
+    }
+
+    // ---- storage (best streak only; optional) ----
+    const store = {
+      get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    };
+
+    // ---- game state ----
+    const $ = id => document.getElementById(id);
+    const boardEl = $('board'), msgEl = $('msg');
+    let puzzle, cards, history, sel, op, done;
+    let solved = 0, streak = 0, best = Number(store.get('24-best')) || 0;
+
+    function start(nums) {
+      puzzle = nums;
+      cards = nums.map(n => F(n));
+      history = [];
+      sel = null; op = null; done = false;
+      say('点一个数，再点运算符，再点另一个数');
+      render();
+    }
+
+    function say(text, cls = '') { msgEl.textContent = text; msgEl.className = 'msg ' + cls; }
+
+    function render(resultClass) {
+      boardEl.innerHTML = '';
+      cards.forEach((f, i) => {
+        const b = document.createElement('button');
+        b.className = 'card';
+        if (!f) b.classList.add('gone');
+        else {
+          b.textContent = fmt(f);
+          if (f.d !== 1) b.classList.add('frac');
+          if (i === sel) b.classList.add(resultClass || 'sel');
+        }
+        b.onclick = () => tapCard(i);
+        boardEl.appendChild(b);
+      });
+      document.querySelectorAll('.op').forEach(b => b.classList.toggle('sel', b.dataset.op === op));
+      $('undo').disabled = history.length === 0 || done;
+      $('reset').disabled = history.length === 0 || done;
+      $('solved').textContent = solved;
+      $('streak').textContent = streak;
+      $('best').textContent = best;
+    }
+
+    function tapCard(i) {
+      if (done || !cards[i]) return;
+      if (sel === null || sel === i) {
+        sel = sel === i ? null : i;
+        op = null;
+        return render();
+      }
+      if (!op) { sel = i; return render(); }
+
+      const res = OPS[op](cards[sel], cards[i]);
+      if (!res) {
+        say('不能除以 0', 'bad');
+        boardEl.children[i].classList.add('shake');
+        return;
+      }
+      history.push({ cards: cards.slice(), sel });
+      say(`${fmt(cards[sel])} ${SYM[op]} ${fmt(cards[i])} = ${fmt(res)}`);
+      cards[i] = res;
+      cards[sel] = null;
+      sel = i; op = null;
+
+      if (cards.filter(Boolean).length === 1) finish(res);
+      else render();
+    }
+
+    function finish(f) {
+      if (is24(f)) {
+        done = true;
+        solved++; streak++;
+        if (streak > best) { best = streak; store.set('24-best', best); }
+        say('🎉 算出 24 了！点「换一题」继续', 'ok');
+        render('win');
+      } else {
+        say(`得到 ${fmt(f)}，不是 24。撤销或重来试试`, 'bad');
+        render('miss');
+      }
+    }
+
+    document.querySelectorAll('.op').forEach(b => b.onclick = () => {
+      if (done) return;
+      if (sel === null) return say('先点一个数', 'bad');
+      op = op === b.dataset.op ? null : b.dataset.op;
+      render();
+    });
+
+    $('undo').onclick = () => {
+      const h = history.pop();
+      if (!h) return;
+      cards = h.cards; sel = h.sel; op = null;
+      say('已撤销');
+      render();
+    };
+
+    $('reset').onclick = () => start(puzzle);
+
+    $('answer').onclick = () => {
+      if (!done) streak = 0;
+      say('答案：' + solutionOf(puzzle) + ' = 24');
+      render();
+    };
+
+    $('next').onclick = () => {
+      if (!done) streak = 0;
+      start(randomPuzzle());
+    };
+
+    // ?q=3,3,8,8 loads a specific puzzle (handy for sharing)
+    const q = new URLSearchParams(location.search).get('q');
+    const qNums = q && q.split(',').map(Number);
+    start(qNums && qNums.length === 4 && qNums.every(n => Number.isInteger(n) && n > 0) && solutionOf(qNums)
+      ? qNums : randomPuzzle());
+  </script>
+</body>
+</html>
